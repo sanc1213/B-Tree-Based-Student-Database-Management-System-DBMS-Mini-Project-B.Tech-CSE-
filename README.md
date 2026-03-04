@@ -1,0 +1,2 @@
+# B-Tree-Based-Student-Database-Management-System-DBMS-Mini-Project-B.Tech-CSE-
+This DBMS mini project demonstrates B+ Tree indexing using MySQL and Python. It manages student records with insert, search, and display operations. Indexes on primary key and marks improve query performance. The system measures execution time to compare indexed searches and range queries, showing how B+ Trees optimize data retrieval in databases.
