@@ -1,0 +1,12 @@
+CREATE TABLE Student(student_id INT AUTO_INCREMENT PRIMARY KEY,name VARCHAR(10),course VARCHAR(10),marks INT);
+
+CREATE TABLE Record(record_id INT AUTO_INCREMENT PRIMARY KEY,student_id INT,key_value INT,FOREIGN KEY(student_id) REFERENCES Student(student_id) ON DELETE CASCADE);
+
+CREATE TABLE IndexTable(index_id INT AUTO_INCREMENT PRIMARY KEY,index_type VARCHAR(10));
+
+CREATE TABLE BPlusTreeIndex(index_id INT PRIMARY KEY,root_node_id INT,order_m INT,height INT,FOREIGN KEY(index_id) REFERENCES IndexTable(index_id) ON DELETE CASCADE);
+
+CREATE TABLE Node(node_id INT AUTO_INCREMENT PRIMARY KEY,index_id INT,parent_node_id INT,node_type VARCHAR(10),num_keys INT,next_node_id INT,FOREIGN KEY(index_id) REFERENCES BPlusTreeIndex(index_id) ON DELETE CASCADE);
+
+CREATE TABLE Pointer(pointer_id INT AUTO_INCREMENT PRIMARY KEY,from_node_id INT,to_node_id INT,record_id INT,FOREIGN KEY(from_node_id) REFERENCES Node(node_id) ON DELETE CASCADE,FOREIGN KEY(to_node_id) REFERENCES Node(node_id) ON DELETE CASCADE,FOREIGN KEY(record_id) REFERENCES Record(record_id) ON DELETE CASCADE);
+
