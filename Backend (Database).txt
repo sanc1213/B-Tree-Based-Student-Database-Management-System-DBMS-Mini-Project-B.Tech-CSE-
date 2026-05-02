@@ -1,0 +1,19 @@
+CREATE DATABASE IF NOT EXISTS btree_db;
+USE btree_db;
+
+-- Users table for Authentication
+CREATE TABLE IF NOT EXISTS Users (id INT AUTO_INCREMENT PRIMARY KEY,username VARCHAR(50) UNIQUE NOT NULL,password VARCHAR(50) NOT NULL,role ENUM('admin', 'user') NOT NULL);
+
+-- Student data table
+CREATE TABLE IF NOT EXISTS Student(student_id INT AUTO_INCREMENT PRIMARY KEY,name VARCHAR(50),course VARCHAR(50),marks INT);
+
+-- B+ Tree Index Tables
+CREATE TABLE IF NOT EXISTS Record(record_id INT AUTO_INCREMENT PRIMARY KEY, student_id INT, key_value INT, FOREIGN KEY(student_id) REFERENCES Student(student_id) ON DELETE CASCADE);
+CREATE TABLE IF NOT EXISTS IndexTable(index_id INT AUTO_INCREMENT PRIMARY KEY, index_type VARCHAR(10));
+CREATE TABLE IF NOT EXISTS BPlusTreeIndex(index_id INT PRIMARY KEY, root_node_id INT, order_m INT, height INT, FOREIGN KEY(index_id) REFERENCES IndexTable(index_id) ON DELETE CASCADE);
+CREATE TABLE IF NOT EXISTS Node(node_id INT AUTO_INCREMENT PRIMARY KEY, index_id INT, parent_node_id INT, node_type VARCHAR(10), num_keys INT, next_node_id INT, FOREIGN KEY(index_id) REFERENCES BPlusTreeIndex(index_id) ON DELETE CASCADE);
+CREATE TABLE IF NOT EXISTS Pointer(pointer_id INT AUTO_INCREMENT PRIMARY KEY, from_node_id INT, to_node_id INT, record_id INT, FOREIGN KEY(from_node_id) REFERENCES Node(node_id) ON DELETE CASCADE, FOREIGN KEY(to_node_id) REFERENCES Node(node_id) ON DELETE CASCADE, FOREIGN KEY(record_id) REFERENCES Record(record_id) ON DELETE CASCADE);
+
+-- Default Logins
+INSERT IGNORE INTO Users (username, password, role) VALUES ('admin', 'admin123', 'admin');
+INSERT IGNORE INTO Users (username, password, role) VALUES ('user', 'user123', 'user');

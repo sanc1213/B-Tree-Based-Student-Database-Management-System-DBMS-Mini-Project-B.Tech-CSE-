@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>B+ Tree Student Database</title>
+    <style>
+        :root {
+            --neon-blue: #00d4ff;
+            --neon-purple: #9d00ff;
+            --glass: rgba(255, 255, 255, 0.07);
+            --glass-border: rgba(255, 255, 255, 0.15);
+            --error-red: #ff4757;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+
+        body {
+            background: radial-gradient(circle at center, #0a0a2e 0%, #020205 100%);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow-x: hidden;
+        }
+
+        .stars {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: url('https://www.transparenttextures.com/patterns/stardust.png');
+            opacity: 0.4; z-index: -1; animation: drift 20s linear infinite;
+        }
+        @keyframes drift { from { background-position: 0 0; } to { background-position: 500px 500px; } }
+
+        #loginScreen {
+            background: var(--glass); backdrop-filter: blur(25px);
+            padding: 45px; border-radius: 24px; border: 1px solid var(--neon-blue);
+            width: 380px; text-align: center;
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.1);
+            z-index: 10;
+        }
+
+        input {
+            width: 100%; padding: 14px; margin: 12px 0;
+            background: rgba(0, 0, 0, 0.4); border: 1px solid var(--glass-border);
+            color: white; border-radius: 12px; outline: none;
+            transition: 0.3s;
+        }
+        input:focus { border-color: var(--neon-blue); box-shadow: 0 0 10px rgba(0, 212, 255, 0.2); }
+
+        .btn-action {
+            width: 100%; padding: 14px;
+            background: linear-gradient(45deg, var(--neon-blue), var(--neon-purple));
+            border: none; color: white; font-weight: bold; border-radius: 12px;
+            cursor: pointer; text-transform: uppercase; letter-spacing: 1.5px;
+            transition: 0.3s;
+            margin-top: 10px;
+        }
+        .btn-action:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0, 212, 255, 0.3); }
+
+        #dashboard { display: none; width: 95%; max-width: 1100px; padding: 20px; position: relative; }
+
+        .logout-btn {
+            position: absolute; top: 0; right: 20px;
+            background: var(--error-red); color: white; border: none;
+            padding: 8px 20px; border-radius: 50px; cursor: pointer;
+            font-weight: bold; font-size: 0.8rem; transition: 0.3s;
+        }
+        .logout-btn:hover { background: #ff2e3d; box-shadow: 0 0 15px rgba(255, 71, 87, 0.4); }
+
+        .glass-card {
+            background: var(--glass); border: 1px solid var(--glass-border);
+            border-radius: 20px; padding: 25px; margin-bottom: 25px; backdrop-filter: blur(15px);
+        }
+
+        .admin-only { display: none; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { text-align: left; color: var(--neon-purple); padding: 15px; border-bottom: 1px solid var(--neon-blue); font-size: 0.9rem; }
+        td { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.9rem; }
+
+        footer {
+            margin-top: 30px; padding: 20px; text-align: center;
+            font-size: 0.8rem; color: rgba(255,255,255,0.7);
+            border-top: 1px solid var(--glass-border); width: 100%;
+            background: rgba(0,0,0,0.2);
+        }
+        footer a { color: var(--neon-blue); text-decoration: none; margin: 0 8px; transition: 0.3s; }
+        footer a:hover { text-shadow: 0 0 10px var(--neon-blue); color: white; }
+    </style>
+</head>
+<body>
+
+    <div class="stars"></div>
+
+    <!-- LOGIN SECTION -->
+    <div id="loginScreen">
+        <h2 style="letter-spacing: 4px; color: var(--neon-blue); margin-bottom: 20px;">B+Tree LOGIN</h2>
+        <form id="loginForm" onsubmit="event.preventDefault(); login();">
+            <input type="text" id="user" placeholder="Username" required>
+            <input type="password" id="pass" placeholder="Password" required>
+            <button type="submit" class="btn-action">Enter System</button>
+        </form>
+        <p id="err" style="color: var(--error-red); margin-top: 15px; font-size: 0.85rem;"></p>
+    </div>
+
+    <!-- DASHBOARD SECTION -->
+    <div id="dashboard">
+        <button class="logout-btn" onclick="location.reload()">LOGOUT</button>
+        <h1 style="margin-bottom: 30px; font-weight: 300;">System Access: <span id="roleLabel" style="color: var(--neon-blue);"></span></h1>
+        
+        <div class="glass-card admin-only">
+            <h3>Add New Student Record</h3>
+            <div style="display: flex; gap: 15px; margin-top: 15px;">
+                <input type="text" id="name" placeholder="Name">
+                <input type="text" id="course" placeholder="Course">
+                <input type="number" id="marks" placeholder="Marks">
+                <button class="btn-action" style="width: 180px;" onclick="add()">Insert</button>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 25px;">
+            <div class="glass-card">
+                <h3>Search B+ Tree Index</h3>
+                <input type="number" id="sid" placeholder="Student ID">
+                <button class="btn-action" onclick="search()">Find Record</button>
+                <div id="res" style="margin-top: 20px; font-size: 0.95rem; color: var(--neon-blue); line-height: 1.6;"></div>
+            </div>
+            <div class="glass-card">
+                <h3>Database Registry</h3>
+                <table>
+                    <thead>
+                        <tr><th>ID</th><th>Name</th><th>Course</th><th>Marks</th><th class="admin-only">Action</th></tr>
+                    </thead>
+                    <tbody id="rows"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <footer id="creator-credit">
+        Project Developed by <strong style="color: white;">Sanchit Singh (24CS91)</strong>
+        <h4>with group members (24CS88, 24CS89, 24CS90)</h4>
+        Social Media: 
+        <a href="https://www.linkedin.com/in/sanchit3/" target="_blank">LinkedIn</a> | 
+        <a href="https://www.instagram.com/sanchit_s01/" target="_blank">Instagram</a> | 
+        <a href="https://www.youtube.com/channel/UCEQmewlFct_uFf5IL6aIH-A?sub_confirmation=1" target="_blank">YouTube</a>
+    </footer>
+
+<script>
+    // IDENTITY PROTECTION 
+    const CREATOR_ID = "Sanchit Singh";
+    
+    function checkIntegrity() {
+        const footer = document.getElementById('creator-credit');
+        if (!footer) {
+            triggerLockout();
+            return;
+        }
+        const footerText = footer.innerText.toLowerCase();
+        // The check requires both your name and the site domain to be present
+        if (!footerText.includes(CREATOR_ID.toLowerCase()) || !footerText.includes(PRIMARY_SITE)) {
+            triggerLockout();
+        }
+    }
+
+    function triggerLockout() {
+        document.body.innerHTML = "<div style='color:red; text-align:center; padding:100px; background:#000; height:100vh; width:100vw; position:fixed; top:0; left:0; z-index:9999;'><h1>SECURITY ERROR</h1><p>Unauthorized removal of Creator Credits.</p></div>";
+    }
+
+    setInterval(checkIntegrity, 3000);
+
+    const API = "http://localhost:5000";
+    let activeRole = "";
+
+    async function login() {
+        const username = document.getElementById("user").value;
+        const password = document.getElementById("pass").value;
+        try {
+            const r = await fetch(`${API}/login`, {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({username, password})
+            });
+            const data = await r.json();
+            if(r.ok) {
+                activeRole = data.role;
+                document.getElementById("loginScreen").style.display = "none";
+                document.getElementById("dashboard").style.display = "block";
+                document.getElementById("roleLabel").innerText = activeRole.toUpperCase();
+                if(activeRole === "admin") {
+                    document.querySelectorAll(".admin-only").forEach(el => el.style.display = "block");
+                }
+                load();
+            } else { document.getElementById("err").innerText = data.message; }
+        } catch(e) { document.getElementById("err").innerText = "Connection Failed: Start app.py"; }
+    }
+
+    async function load() {
+        try {
+            const r = await fetch(`${API}/view`);
+            const data = await r.json();
+            const tbody = document.getElementById("rows");
+            tbody.innerHTML = "";
+            data.forEach(s => {
+                let ctrl = activeRole === "admin" ? `<td><button onclick="del(${s[0]})" style="color:var(--error-red); background:none; border:none; cursor:pointer; font-weight:bold;">Delete</button></td>` : "<td>-</td>";
+                tbody.innerHTML += `<tr><td>${s[0]}</td><td>${s[1]}</td><td>${s[2]}</td><td>${s[3]}</td>${ctrl}</tr>`;
+            });
+        } catch(e) { console.error("Load failed", e); }
+    }
+
+    async function add() {
+        const name = document.getElementById("name").value;
+        const course = document.getElementById("course").value;
+        const marks = document.getElementById("marks").value;
+        if(!name || !course || !marks) return alert("All fields required");
+
+        await fetch(`${API}/add`, {
+            method: "POST",
+            headers: {"Content-Type": "application/json", "X-User-Role": activeRole},
+            body: JSON.stringify({name, course, marks})
+        });
+        document.getElementById("name").value = "";
+        document.getElementById("course").value = "";
+        document.getElementById("marks").value = "";
+        load();
+    }
+
+    async function search() {
+        const id = document.getElementById("sid").value;
+        if(!id) return;
+        const r = await fetch(`${API}/search/${id}`);
+        if(!r.ok) {
+             document.getElementById("res").innerText = "Error: ID not found.";
+             return;
+        }
+        const s = await r.json();
+        const resDiv = document.getElementById("res");
+        if(s) {
+            resDiv.innerHTML = `<strong>Found:</strong> ${s[1]}<br><strong>Course:</strong> ${s[2]}<br><strong>Marks:</strong> ${s[3]}`;
+        } else {
+            resDiv.innerText = "Error: ID not found.";
+        }
+    }
+
+    async function del(id) {
+        if(confirm("Confirm deletion of record ID: " + id)) {
+            await fetch(`${API}/delete/${id}`, { 
+                method: "DELETE", 
+                headers: {"X-User-Role": activeRole} 
+            });
+            load();
+        }
+    }
+</script>
+</body>
+</html>
