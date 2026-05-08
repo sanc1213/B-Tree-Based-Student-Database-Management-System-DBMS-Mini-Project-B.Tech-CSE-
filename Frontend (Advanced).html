@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>B+ Tree — Student Database</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #07080f;
+            --surface: #0e1018;
+            --border: rgba(255,255,255,0.07);
+            --accent: #00e5ff;
+            --accent2: #ff6b35;
+            --muted: rgba(255,255,255,0.35);
+            --text: #e8eaf0;
+            --danger: #ff4444;
+            --success: #00e096;
+            --card-bg: rgba(255,255,255,0.035);
+        }
+
+        *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+        body { 
+            background: var(--bg); 
+            color: var(--text); 
+            font-family: 'DM Mono', monospace; 
+            min-height: 100vh; 
+            overflow-x: hidden; 
+        }
+
+        /* Grid Background Effect */
+        body::before {
+            content: ''; position: fixed; inset: 0;
+            background-image: linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+            background-size: 40px 40px; pointer-events: none; z-index: 0;
+        }
+
+        .orb { position: fixed; border-radius: 50%; filter: blur(120px); pointer-events: none; z-index: 0; opacity: 0.18; }
+        .orb1 { width: 600px; height: 600px; background: var(--accent); top: -200px; left: -200px; }
+        .orb2 { width: 500px; height: 500px; background: var(--accent2); bottom: -150px; right: -150px; }
+
+        /* Login Screen */
+        #loginWrap { position: relative; z-index: 10; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
+        #loginCard { background: var(--surface); border: 1px solid rgba(0,229,255,0.25); border-radius: 20px; padding: 50px 44px; width: 400px; box-shadow: 0 0 60px rgba(0,229,255,0.06); animation: fadeUp 0.6s ease both; }
+        
+        @keyframes fadeUp { from { opacity:0; transform: translateY(24px); } to { opacity:1; transform: translateY(0); } }
+
+        .brand { font-family: 'Syne', sans-serif; font-size: 2rem; font-weight: 800; color: var(--accent); letter-spacing: -1px; margin-bottom: 6px; }
+        .brand span { color: var(--accent2); }
+        .brand-sub { font-size: 0.72rem; color: var(--muted); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 36px; }
+
+        label { font-size: 0.7rem; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); display: block; margin-bottom: 6px; }
+        input { width: 100%; background: rgba(0,0,0,0.4); border: 1px solid var(--border); color: var(--text); font-family: 'DM Mono', monospace; font-size: 0.9rem; padding: 13px 16px; border-radius: 10px; outline: none; transition: 0.25s; margin-bottom: 20px; }
+        input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,229,255,0.1); }
+
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 13px 24px; border: none; border-radius: 10px; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.85rem; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; transition: 0.2s; white-space: nowrap; }
+        .btn-primary { background: var(--accent); color: #000; width: 100%; }
+        .btn-success { background: var(--success); color: #000; }
+        .btn-danger { background: var(--danger); color: #fff; }
+        .btn-outline { background: transparent; color: var(--accent); border: 1px solid rgba(0,229,255,0.35); }
+        .btn-sm { padding: 7px 14px; font-size: 0.75rem; }
+
+        /* Dashboard Styles */
+        #app { display: none; position: relative; z-index: 10; min-height: 100vh; }
+        .topbar { display: flex; align-items: center; justify-content: space-between; padding: 18px 32px; border-bottom: 1px solid var(--border); background: rgba(7,8,15,0.85); backdrop-filter: blur(12px); position: sticky; top: 0; z-index: 100; }
+        .role-badge { font-size: 0.65rem; letter-spacing: 2px; text-transform: uppercase; padding: 4px 12px; border-radius: 50px; border: 1px solid rgba(0,229,255,0.4); color: var(--accent); }
+
+        .main { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
+        .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+        .stat-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 20px 24px; }
+        .stat-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 5px; }
+        .stat-value { font-family: 'Syne', sans-serif; font-size: 1.8rem; font-weight: 800; color: var(--accent); }
+
+        .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 24px; margin-bottom: 20px; }
+        .card-title { font-family: 'Syne', sans-serif; font-size: 0.85rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+        .card-title::before { content: ''; display: block; width: 3px; height: 14px; background: var(--accent); border-radius: 2px; }
+
+        .cols { display: grid; grid-template-columns: 340px 1fr; gap: 20px; }
+        table { width: 100%; border-collapse: collapse; }
+        th { font-size: 0.65rem; color: var(--muted); padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); text-transform: uppercase; }
+        td { padding: 13px 14px; font-size: 0.85rem; border-bottom: 1px solid var(--border); }
+
+        .search-result { margin-top: 18px; padding: 16px; border-radius: 10px; border: 1px solid rgba(0,229,255,0.2); background: rgba(0,229,255,0.04); display: none; }
+        .search-result.show { display: block; animation: fadeUp 0.3s ease; }
+
+        #toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--surface); border: 1px solid var(--border); padding: 12px 24px; border-radius: 10px; opacity: 0; transition: 0.3s; z-index: 999; }
+        #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    </style>
+</head>
+<body>
+    <div class="orb orb1"></div> <div class="orb orb2"></div>
+
+    <!-- Login UI -->
+    <div id="loginWrap">
+        <div id="loginCard">
+            <div class="brand">B<span>+</span>Tree</div>
+            <div class="brand-sub">Student Database System</div>
+            <label>Username</label>
+            <input type="text" id="uname" placeholder="admin / user">
+            <label>Password</label>
+            <input type="password" id="upass" placeholder="••••••••">
+            <button class="btn btn-primary" onclick="doLogin()">Enter System</button>
+            <div id="loginErr" style="color:var(--danger); text-align:center; font-size:0.8rem; margin-top:15px;"></div>
+        </div>
+    </div>
+
+    <!-- Dashboard UI -->
+    <div id="app">
+        <div class="topbar">
+            <div class="topbar-brand">B<span>+</span>Tree DB</div>
+            <div class="topbar-right">
+                <span class="role-badge" id="roleLabel">VIEWER</span>
+                <button class="btn btn-sm btn-outline" onclick="location.reload()">Logout</button>
+            </div>
+        </div>
+
+        <div class="main">
+            <div class="stats-row">
+                <div class="stat-card"><div class="stat-label">Total Records</div><div class="stat-value" id="statTotal">0</div></div>
+                <div class="stat-card"><div class="stat-label">Avg Marks</div><div class="stat-value" id="statAvg" style="color:var(--accent2)">0</div></div>
+                <div class="stat-card"><div class="stat-label">Top Score</div><div class="stat-value" id="statTop" style="color:var(--success)">0</div></div>
+                <div class="stat-card"><div class="stat-label">System Mode</div><div class="stat-value" style="font-size:1.1rem; color:var(--text)">B+ Tree Live</div></div>
+            </div>
+
+            <!-- Admin Section -->
+            <div class="card" id="adminCard" style="display:none;">
+                <div class="card-title">Insert Record</div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr 1fr auto; gap:12px;">
+                    <input type="text" id="iName" placeholder="Name" style="margin:0">
+                    <input type="text" id="iCourse" placeholder="Course" style="margin:0">
+                    <input type="number" id="iMarks" placeholder="Marks" style="margin:0">
+                    <button class="btn btn-success" onclick="insertRecord()">Insert</button>
+                </div>
+            </div>
+
+            <div class="cols">
+                <!-- Search Section -->
+                <div class="card">
+                    <div class="card-title">Index Search</div>
+                    <div style="display:flex; gap:8px;">
+                        <input type="number" id="searchId" placeholder="Student ID" style="margin:0">
+                        <button class="btn btn-sm btn-outline" onclick="searchRecord()">Find</button>
+                    </div>
+                    <div id="searchResult" class="search-result"></div>
+                </div>
+
+                <!-- Data Table -->
+                <div class="card">
+                    <div class="card-title">Registry</div>
+                    <table>
+                        <thead><tr><th>ID</th><th>Name</th><th>Course</th><th>Marks</th><th>Action</th></tr></thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div id="creator-credit" style="text-align:center; padding:40px; color:var(--muted); font-size:0.7rem; letter-spacing:1px;">
+                DEVELOPED BY: <strong>SANCHIT SINGH (24CS91)</strong> & GROUP
+            </div>
+        </div>
+    </div>
+
+    <div id="toast"></div>
+
+    <script>
+        const API = "http://localhost:5000";
+        let activeRole = "";
+
+        // ENTER KEY LISTENER
+        document.addEventListener('keydown', function(event) {
+            if (event.key === "Enter") {
+                const isLoginVisible = document.getElementById("loginWrap").style.display !== "none";
+                if (isLoginVisible) {
+                    doLogin();
+                } else if (document.activeElement.id === "searchId") {
+                    searchRecord();
+                }
+            }
+        });
+
+        async function doLogin() {
+            const username = document.getElementById("uname").value;
+            const password = document.getElementById("upass").value;
+            try {
+                const res = await fetch(`${API}/login`, {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({username, password})
+                });
+                const data = await res.json();
+                if(res.ok) {
+                    activeRole = data.role;
+                    document.getElementById("loginWrap").style.display = "none";
+                    document.getElementById("app").style.display = "block";
+                    document.getElementById("roleLabel").innerText = activeRole.toUpperCase();
+                    if(activeRole === 'admin') document.getElementById("adminCard").style.display = "block";
+                    loadData();
+                } else {
+                    document.getElementById("loginErr").innerText = data.message;
+                }
+            } catch(e) { document.getElementById("loginErr").innerText = "Connection Error"; }
+        }
+
+        async function loadData() {
+            try {
+                const res = await fetch(`${API}/view`);
+                const data = await res.json();
+                const tbody = document.getElementById("tableBody");
+                tbody.innerHTML = "";
+                
+                let totalMarks = 0;
+                let top = 0;
+
+                data.forEach(s => {
+                    totalMarks += s[3];
+                    if(s[3] > top) top = s[3];
+                    let btn = activeRole === 'admin' ? `<button class="btn btn-sm btn-danger" onclick="deleteRecord(${s[0]})">Delete</button>` : "-";
+                    tbody.innerHTML += `<tr><td>#${s[0]}</td><td>${s[1]}</td><td>${s[2]}</td><td>${s[3]}</td><td>${btn}</td></tr>`;
+                });
+
+                document.getElementById("statTotal").innerText = data.length;
+                document.getElementById("statAvg").innerText = data.length ? Math.round(totalMarks/data.length) : 0;
+                document.getElementById("statTop").innerText = top;
+            } catch(e) { console.error(e); }
+        }
+
+        async function insertRecord() {
+            const name = document.getElementById("iName").value;
+            const course = document.getElementById("iCourse").value;
+            const marks = document.getElementById("iMarks").value;
+            if(!name || !course || !marks) return alert("All fields required");
+
+            await fetch(`${API}/add`, {
+                method: "POST",
+                headers: {"Content-Type": "application/json", "X-User-Role": activeRole},
+                body: JSON.stringify({name, course, marks})
+            });
+            document.getElementById("iName").value = "";
+            document.getElementById("iCourse").value = "";
+            document.getElementById("iMarks").value = "";
+            loadData();
+            showToast("Record Inserted");
+        }
+
+        async function deleteRecord(id) {
+            if(!confirm("Remove Student Record?")) return;
+            await fetch(`${API}/delete/${id}`, {
+                method: "DELETE",
+                headers: {"X-User-Role": activeRole}
+            });
+            loadData();
+            showToast("Record Removed");
+        }
+
+        async function searchRecord() {
+            const id = document.getElementById("searchId").value;
+            const div = document.getElementById("searchResult");
+            if(!id) return;
+            
+            const res = await fetch(`${API}/search/${id}`);
+            div.className = "search-result show";
+            if(res.ok) {
+                const s = await res.json();
+                div.innerHTML = `<div style="color:var(--accent); font-weight:bold;">Student: ${s[1]}</div><div>Course: ${s[2]}</div><div>Marks: ${s[3]}</div>`;
+            } else {
+                div.innerHTML = `<div style="color:var(--danger)">Not Found in Index</div>`;
+            }
+        }
+
+        function showToast(m) {
+            const t = document.getElementById("toast");
+            t.innerText = m; t.className = "show";
+            setTimeout(() => t.className = "", 2500);
+        }
+    </script>
+</body>
+</html>
